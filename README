@@ -1,0 +1,36 @@
+nflparser
+
+Routines for parsing and analyzing NFL games.
+
+Copyright (c) 2013 Andrew Werner
+
+Free for public use so long as you give me some sort of credit, or at
+least some notice, however obliquely or back-handedly. 
+------------------------------------------------------------
+
+This package includes a set of classes that should be of some use in 
+interpreting NFL play-by-play data.  This data can be found for free
+since the year 2002 at the Advanced NFL Stats website:
+
+http://www.advancednflstats.com/2010/04/play-by-play-data.html
+
+The following classes work well with the raw files.
+
+--> the GameFactory class will take a file and return an iterable of games
+--> the PlayMaker class will take a row and return a play having
+    relevant information, including information from the description.
+--> the parse_play and parse_plays routines parse the contents of the
+    'description' column into a series of 'segments' that can be aggregated
+    to provide useful information about persons involved with the play
+    or otherwise interesting surrounding circumstances.
+
+This framework differs from other framework in the level of detail it provides 
+in regards to the 'description' column.  Compared with simpler techniques
+based on token recognition and regular expression parsing, it is capable of 
+recognizing complex play outcomes, such as successful and unsuccessful 
+challenges, turnovers (and the outcome of the return), penalties (including
+offsetting or superseded penalties), and other exotic situations such as
+laterals.
+
+Most of the action will occur with developing interesting PlayMaker classes
+that deal constructively with the output of the parse_play routine.
