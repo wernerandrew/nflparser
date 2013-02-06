@@ -56,29 +56,49 @@ def lex_play(playstr):
                  for t in outstr.split())
 
 class FSM:
-    def __init__(self, initial_state, context=None):
+    def __init__(self, initial_state, context_type):
         """
         Container for a set of handlers.
         Handlers correspond to states and are implemented
         as functions.
+
+        Arguments:
+        ----------
+        initial_state: starting state for a processing run.
+        context_type: instance of class that is used to initialize
+        the parse context at the beginning of a run.
         """
         self.handlers = set()
         self.end_states = set()
-        self.context = context
+        self.context = None
+        self.context_type = context_type
         self.initial_state = initial_state
         self.current_state = self.initial_state
 
     def reset(self):
+        """Resets the parser and sets the context to None. 
+        Context attribute must be set for parsing to continue.
+        """
         self.current_state = self.initial_state
-        self.context = None
+        self.context = self.context_type()
 
     def add_state(self, handler):
+        """Add a valid state handler to the set of valid handlers.
+        """
         self.handlers.add(handler)
 
     def add_end_state(self, end_state):
+        """Add an end state to the set of valid handlers.
+        """
         self.end_states.add(end_state)
     
     def process(self, cargo):
+        """Process the cargo, which is a deque of tokens that have been
+        prepared for parsing with the lex_play routine.
+
+        When complete, creates an appropriately modified 
+        """
+        self.reset()
         if not self.end_states:
             raise RuntimeError('no ending states -- cannot process')
         if _DEBUG_LEVEL > 0:
@@ -104,7 +124,10 @@ class FSM:
             self.current_state = next_state
 
 def get_play_parser():
-    parser = FSM(parse_states.state_initial)
+    """Returns a FSM instance that is properly populated with
+    all of the relevant states in the parse_states module.
+    """
+    parser = FSM(parse_states.state_initial, PlayDescription)
     states = [getattr(parse_states, f)
               for f in dir(parse_states) if
               re.match('^state_', f)]
@@ -118,9 +141,12 @@ def get_play_parser():
     return parser
 
 def parse_play(play, parser, verbose=False):
+    """Given a play string and a parser, tokenizes the play and sends it
+    to the parser (i.e., an instance of the FSM class).
+
+    Returns the appropriately parsed play, as an instance of PlayDescription.
+    """
     try:
-        parser.reset()
-        parser.context = PlayDescription()
         play_tokens = lex_play(play)
         parser.process(play_tokens)
         result = parser.context
@@ -141,6 +167,9 @@ def parse_play(play, parser, verbose=False):
     return result
 
 def parse_plays(plist, verbose=False):
+    """Applies the parse_play function to a list of play descriptions.
+    Returns a listed of parsed plays.
+    """
     parser = get_play_parser()
     parsed = []
     success = 0
@@ -157,6 +186,10 @@ def parse_plays(plist, verbose=False):
     return parsed
 
 def parse_to_csv(plays, output_file, **kwargs):
+    """Parse a list of text play descriptions and output result 
+    to a semicolon-delimited csv file.
+    kwargs are passed to parse_plays.
+    """
     parsed = parse_plays(plays, **kwargs)
     with open(output_file, 'w') as ofile:
         ofile.write('play_num;segment_num;')
@@ -173,10 +206,8 @@ def parse_to_csv(plays, output_file, **kwargs):
                 ofile.write('\n')
 
 def _segment_to_csv(play_segment):
+    """Helper function for CSV conversion."""
     return ';'.join(str(getattr(play_segment, attr)) 
                     if hasattr(play_segment, attr) 
                     else 'NA' 
                     for attr in _play_attributes) 
-
-if __name__ == '__main__':
-    pass
