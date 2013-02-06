@@ -13,6 +13,7 @@ from parser_types import PlayDescription
 from parser_frontend import get_play_parser, parse_play
 from csv import DictReader
 import copy
+import numpy as np
 
 # maps team codes used in descriptions to team codes used in
 # offense/defense designations
@@ -117,6 +118,10 @@ class Play(object):
     """Simple data container for now.
 
     """
+    def __init__(self):
+        self.home_points = 0
+        self.away_points = 0
+
     def __repr__(self):
         return ';'.join('{0}={1}'.format(k, v)
                         for k, v in vars(self).iteritems())
@@ -151,6 +156,8 @@ class GameFactory(object):
                                                  current_game.away,
                                                  row)
                 current_game.add_play(play)
+            if current_game is not None:
+                yield current_game
 
         
 class PlayMaker(object):
@@ -213,12 +220,16 @@ class PlayMaker(object):
             new_play.time = 60*(60 - min_left) - sec_left
         # in files, yardlines are set from perspective of offense
         # here, we 
-        if new_play.offense == self.home:
-            new_play.start_yardline = 100 - int(row['ydline'])
-            new_play.yardage_mult = 1
-        else:
-            new_play.start_yardline = int(row['ydline'])
-            new_play.yardage_mult = -1
+        try:
+            raw_start_yardline = int(row['ydline'])
+            if new_play.offense == self.home:
+                new_play.start_yardline = 100 - raw_start_yardline
+                new_play.yardage_mult = 1
+            else:
+                new_play.start_yardline = raw_start_yardline
+                new_play.yardage_mult = -1
+        except ValueError:
+            raw_start_yardline = np.nan
         if not score_from_play:
             try:
                 offscore = int(row['offscore'])
@@ -226,12 +237,6 @@ class PlayMaker(object):
             except ValueError:
                 offscore = -1
                 defscore = -1
-            if new_play.offense == self.home:
-                new_play.home_points = offscore
-                new_play.away_points = defscore
-            else:
-                new_play.home_points = defscore
-                new_play.away_points = offscore
         return self.transform(new_play, row['description'])
 
     def transform(self, play, description):
